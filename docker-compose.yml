@@ -1,0 +1,167 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?Set the PostgreSQL administrator password}
+      POSTGRES_DB: ${POSTGRES_DB:-horizon}
+      FINANCE_DB_PASSWORD: ${FINANCE_DB_PASSWORD:?Set the financial database password}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set the authentication database password}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/init/00-extensions.sql:/docker-entrypoint-initdb.d/00-extensions.sql:ro
+      - ./infra/postgres/init/01-roles.sh:/docker-entrypoint-initdb.d/01-roles.sh:ro
+      - ./infra/postgres/init/01-roles.sql:/opt/horizon-init/roles.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+    restart: unless-stopped
+
+  finance-migrations:
+    build: {context: ., dockerfile: database/finance/Dockerfile}
+    environment:
+      FINANCE_DATABASE_URL: postgresql://horizon_finance:${FINANCE_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-horizon}
+    depends_on: {postgres: {condition: service_healthy}}
+    networks: [internal]
+
+  auth-migrations:
+    build: {context: ., dockerfile: backend/Dockerfile}
+    command: ["alembic", "-c", "alembic-auth.ini", "upgrade", "head"]
+    environment:
+      AUTH_DATABASE_URL: postgresql+asyncpg://horizon_auth:${AUTH_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-horizon}
+    depends_on: {postgres: {condition: service_healthy}}
+    networks: [internal]
+
+  core:
+    build: {context: ., dockerfile: core/Dockerfile}
+    environment:
+      FINANCE_DATABASE_URL: postgresql://horizon_finance:${FINANCE_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-horizon}
+      GRPC_BIND_ADDRESS: 0.0.0.0:50051
+      INTERNAL_GRPC_TOKEN: ${INTERNAL_GRPC_TOKEN:?Set an internal gRPC token}
+      HORIZON_INITIAL_ISSUANCE_ACCOUNT_ID: 00000000-0000-0000-0000-000000000001
+    depends_on: {finance-migrations: {condition: service_completed_successfully}}
+    networks: [internal]
+    restart: unless-stopped
+
+  backend:
+    build: {context: ., dockerfile: backend/Dockerfile}
+    environment: &backend-environment
+      AUTH_DATABASE_URL: postgresql+asyncpg://horizon_auth:${AUTH_DB_PASSWORD}@postgres:5432/${POSTGRES_DB:-horizon}
+      PROJECT_NAME: ${PROJECT_NAME:-Minecraft Banking System}
+      GRPC_TARGET: core:50051
+      INTERNAL_GRPC_TOKEN: ${INTERNAL_GRPC_TOKEN}
+      API_KEY_PEPPER: ${API_KEY_PEPPER:?Set the API-key verification pepper}
+      DISCORD_BOT_INTERNAL_TOKEN: ${DISCORD_BOT_INTERNAL_TOKEN:?Set the bot authentication token}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      DISCORD_REDIRECT_URI: ${DISCORD_REDIRECT_URI}
+      MINECRAFT_VERIFIER_TOKEN: ${MINECRAFT_VERIFIER_TOKEN:-}
+      ATM_SERVICE_TOKEN: ${ATM_SERVICE_TOKEN:-}
+      ATM_COORDINATOR_URL: http://atm:8090
+      ATM_IDENTITY_MODE: ${ATM_IDENTITY_MODE:-online-mode}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      MAX_REQUEST_BYTES: ${MAX_REQUEST_BYTES:-1048576}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-120}
+      # Trust forwarded client addresses only from explicitly configured reverse proxies.
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
+      SESSION_TTL_SECONDS: ${SESSION_TTL_SECONDS:-2592000}
+      SESSION_ABSOLUTE_TTL_SECONDS: ${SESSION_ABSOLUTE_TTL_SECONDS:-7776000}
+    depends_on: {auth-migrations: {condition: service_completed_successfully}, core: {condition: service_started}}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks: [internal, egress]
+    restart: unless-stopped
+
+  payroll-worker:
+    build: {context: ., dockerfile: backend/Dockerfile}
+    command: ["python", "-m", "app.payroll_worker"]
+    environment: *backend-environment
+    depends_on: {backend: {condition: service_healthy}}
+    networks: [internal]
+    restart: unless-stopped
+    init: true
+
+  exchange-worker:
+    build: {context: ., dockerfile: backend/Dockerfile}
+    command: ["python", "-m", "app.exchange_worker"]
+    environment: *backend-environment
+    depends_on: {backend: {condition: service_healthy}}
+    networks: [internal]
+    restart: unless-stopped
+    init: true
+
+  privacy-worker:
+    build: {context: ., dockerfile: backend/Dockerfile}
+    entrypoint: ["python", "-m", "app.privacy_worker"]
+    command: ["--once"]
+    profiles: [privacy]
+    environment:
+      <<: *backend-environment
+      PRIVACY_BACKUP_MANIFEST: /privacy-backups/verified.json
+      PRIVACY_FINANCIAL_RETENTION_BASIS: ${PRIVACY_FINANCIAL_RETENTION_BASIS:-}
+    volumes:
+      - type: bind
+        source: ${PRIVACY_BACKUP_DIR:-./.privacy-backups}
+        target: /privacy-backups
+        read_only: true
+        bind: {create_host_path: false}
+    networks: [internal]
+    read_only: true
+    tmpfs: [/tmp]
+    init: true
+
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_PROJECT_NAME: ${VITE_PROJECT_NAME:-Banking System}
+        VITE_SERVER_URL: ${VITE_SERVER_URL:-}
+        VITE_BANK_LOGO_URL: ${VITE_BANK_LOGO_URL:-}
+    depends_on: {backend: {condition: service_healthy}}
+    ports: ["127.0.0.1:8080:80"]
+    networks: [internal]
+    restart: unless-stopped
+
+  atm:
+    build: {context: ., dockerfile: atm/Dockerfile}
+    environment:
+      HORIZON_API_URL: http://backend:8000/api/v1
+      ATM_SERVICE_TOKEN: ${ATM_SERVICE_TOKEN:-}
+      ATM_IDENTITY_MODE: ${ATM_IDENTITY_MODE:-online-mode}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8080}
+      ATM_CONFIG_FILE: /config/config.json
+      ATM_BOT_SECRETS_FILE: /config/bot-secrets.env
+      ATM_STATE_DIR: /state
+    volumes:
+      - ${ATM_CONFIG_DIR:-./atm}:/config:ro
+      - atm-state:/state
+    depends_on: {backend: {condition: service_healthy}}
+    profiles: [atm]
+    networks: [internal, egress]
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 20s
+
+  bot:
+    build: {context: ., dockerfile: bot/Dockerfile}
+    environment:
+      HORIZON_API_URL: http://backend:8000/api/v1
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN:-}
+      DISCORD_BOT_INTERNAL_TOKEN: ${DISCORD_BOT_INTERNAL_TOKEN}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN}
+    depends_on: {backend: {condition: service_healthy}}
+    profiles: [bot]
+    networks: [internal, egress]
+    restart: unless-stopped
+
+volumes: {postgres-data: {}, atm-state: {}}
+networks: {internal: {internal: true}, egress: {}}

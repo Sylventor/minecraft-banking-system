@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+.venv
+.tools
+**/node_modules
+**/__pycache__
+**/*.egg-info
+build
+test-results
+frontend/dist
+atm/config.json
+atm/*.env
+atm/state
+minecraft-mod/

@@ -1,0 +1,17 @@
+{
+  "synthetic": true,
+  "description": "Fictional metadata for the isolated demo; not a production database export.",
+  "owner": {
+    "username": "DemoOwner",
+    "display_name": "Demo Owner"
+  },
+  "recipient": {
+    "username": "DemoPlayer",
+    "display_name": "Demo Player"
+  },
+  "initial_issued_amount": "1250.50",
+  "sample_transfer_amount": "35.00",
+  "organization": "Demo Organization",
+  "product": "Diamond Pickaxe",
+  "currency": "DB"
+}

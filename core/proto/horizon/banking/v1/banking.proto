@@ -1,0 +1,102 @@
+syntax = "proto3";
+
+package horizon.banking.v1;
+
+option cc_enable_arenas = true;
+
+message Money { string amount = 1; string currency = 2; }
+message RequestContext {
+  string actor_id = 1;
+  string request_id = 2;
+  string correlation_id = 3;
+  string source = 4;
+  string internal_token = 5;
+}
+message Account { string id = 1; string status = 2; string account_type = 3; Money balance = 4; Money held = 5; Money available = 6; string public_number = 7; string name = 8; bool is_primary = 9; string owner_id = 10; string organization_id = 11; repeated string permissions = 12; }
+message Operation { string id = 1; string type = 2; string status = 3; string source_account_id = 4; string destination_account_id = 5; Money amount = 6; string created_at = 7; string completed_at = 8; string related_operation_id = 9; string hold_id = 10; string reason = 11; string source_public_number = 12; string destination_public_number = 13; string source_owner_id = 14; string destination_owner_id = 15; string source_name = 16; string destination_name = 17; Money fee = 18; string source_organization_id = 19; string destination_organization_id = 20; }
+message GetAccountRequest { RequestContext context = 1; string account_id = 2; }
+message CreateAccountRequest { RequestContext context = 1; string account_type = 2; string name = 3; string idempotency_key = 4; }
+message ListAccountsRequest { RequestContext context = 1; uint32 limit = 2; string cursor = 3; }
+message AccountPage { repeated Account accounts = 1; string next_cursor = 2; }
+message GetBalanceRequest { RequestContext context = 1; string account_id = 2; }
+message OperationRequest {
+  RequestContext context = 1;
+  string source_account_id = 2;
+  string destination_account_id = 3;
+  Money amount = 4;
+  string idempotency_key = 5;
+  string request_fingerprint = 6;
+  string reason = 7;
+  string related_operation_id = 8;
+  string authority_reference = 9;
+  string not_after = 10;
+}
+message HoldRequest { RequestContext context = 1; string account_id = 2; Money amount = 3; string idempotency_key = 4; string request_fingerprint = 5; string reason = 6; }
+message HoldActionRequest { RequestContext context = 1; string hold_id = 2; string destination_account_id = 3; string idempotency_key = 4; string request_fingerprint = 5; string reason = 6; }
+message GetOperationRequest { RequestContext context = 1; string operation_id = 2; }
+message HistoryRequest { RequestContext context = 1; string account_id = 2; uint32 limit = 3; string cursor = 4; }
+message OperationHistory { repeated Operation operations = 1; string next_cursor = 2; }
+message AuthorizationRequest { RequestContext context = 1; string account_id = 2; string permission = 3; }
+message AuthorizationDecision { bool allowed = 1; string reason_code = 2; }
+message PrimaryAccountRequest { RequestContext context = 1; }
+message UpdateAccountRequest { RequestContext context = 1; string account_id = 2; string name = 3; bool set_primary = 4; }
+message PublicAccountRequest { RequestContext context = 1; string identifier = 2; string owner_id = 3; }
+message PublicAccount { string account_id = 1; string public_number = 2; string name = 3; string owner_id = 4; string organization_id = 5; }
+message ActivityRequest { RequestContext context = 1; string account_id = 2; uint32 limit = 3; string cursor = 4; string operation_type = 5; string query = 6; string from_date = 7; string to_date = 8; string order = 9; }
+message OrganizationMember { string user_id = 1; string role = 2; repeated string permissions = 3; }
+message OrganizationRequest { RequestContext context = 1; string organization_id = 2; string name = 3; string owner_id = 4; repeated OrganizationMember members = 5; }
+message OrganizationView { string id = 1; string name = 2; string owner_id = 3; repeated OrganizationMember members = 4; repeated Account accounts = 5; string current_role = 6; }
+message OrganizationAccountRequest { RequestContext context = 1; string organization_id = 2; string name = 3; string idempotency_key = 4; }
+message OrganizationMemberRequest { RequestContext context = 1; string organization_id = 2; OrganizationMember member = 3; bool remove = 4; }
+message RequestOutcomeRequest { RequestContext context = 1; string idempotency_key = 2; string operation_type = 3; }
+message AdminQueryRequest { RequestContext context = 1; string kind = 2; string query = 3; string target_id = 4; string cursor = 5; uint32 limit = 6; string operation_type = 7; string from_date = 8; string to_date = 9; }
+message AdminChangeRequest { RequestContext context = 1; string kind = 2; string target_id = 3; string account_id = 4; string permission = 5; bool revoke = 6; string state = 7; string reason = 8; bool confirmed = 9; }
+message JsonResult { string json = 1; }
+message NotificationEventsRequest { RequestContext context = 1; repeated uint64 acknowledged_ids = 2; }
+message PaymentRequestCommand {
+  RequestContext context = 1; string action = 2; string id = 3; string payer_id = 4;
+  string recipient_account_id = 5; string amount = 6; string description = 7;
+  string expires_at = 8; uint32 expires_in = 9; string external_id = 10; string metadata = 11;
+  string idempotency_key = 12; string fingerprint = 13; string source_account_id = 14; bool confirmed = 15;
+  string direction = 16; string status = 17; string order = 18; uint32 offset = 19; uint32 limit = 20;
+  string organization_id = 21; string key_id = 22; repeated string account_ids = 23;
+}
+message BusinessRequest {
+  RequestContext context = 1; string organization_id = 2; string action = 3; string target_id = 4;
+  string payload = 5; repeated string allowed_account_ids = 6; bool resource_scoped = 7;
+}
+
+service BankingService {
+  rpc Atm(BusinessRequest) returns (JsonResult);
+  rpc Privacy(BusinessRequest) returns (JsonResult);
+  rpc Exchange(BusinessRequest) returns (JsonResult);
+  rpc Business(BusinessRequest) returns (JsonResult);
+  rpc PaymentRequests(PaymentRequestCommand) returns (JsonResult);
+  rpc AdministrativeQuery(AdminQueryRequest) returns (JsonResult);
+  rpc AdministrativeChange(AdminChangeRequest) returns (JsonResult);
+  rpc NotificationEvents(NotificationEventsRequest) returns (JsonResult);
+  rpc AcknowledgeNotificationEvents(NotificationEventsRequest) returns (JsonResult);
+  rpc CreateAccount(CreateAccountRequest) returns (Account);
+  rpc ListAccounts(ListAccountsRequest) returns (AccountPage);
+  rpc GetAccount(GetAccountRequest) returns (Account);
+  rpc GetBalance(GetBalanceRequest) returns (Account);
+  rpc Transfer(OperationRequest) returns (Operation);
+  rpc CreatePayment(OperationRequest) returns (Operation);
+  rpc Refund(OperationRequest) returns (Operation);
+  rpc Issue(OperationRequest) returns (Operation);
+  rpc CreateHold(HoldRequest) returns (Operation);
+  rpc ReleaseHold(HoldActionRequest) returns (Operation);
+  rpc CaptureHold(HoldActionRequest) returns (Operation);
+  rpc GetOperation(GetOperationRequest) returns (Operation);
+  rpc GetHistory(HistoryRequest) returns (OperationHistory);
+  rpc CheckAuthorization(AuthorizationRequest) returns (AuthorizationDecision);
+  rpc EnsurePrimaryAccount(PrimaryAccountRequest) returns (Account);
+  rpc UpdateAccount(UpdateAccountRequest) returns (Account);
+  rpc ResolveAccount(PublicAccountRequest) returns (PublicAccount);
+  rpc GetActivity(ActivityRequest) returns (OperationHistory);
+  rpc EnsureOrganization(OrganizationRequest) returns (OrganizationView);
+  rpc GetOrganization(OrganizationRequest) returns (OrganizationView);
+  rpc CreateOrganizationAccount(OrganizationAccountRequest) returns (Account);
+  rpc ChangeOrganizationMember(OrganizationMemberRequest) returns (OrganizationView);
+  rpc GetRequestOutcome(RequestOutcomeRequest) returns (Operation);
+}

@@ -1,0 +1,19 @@
+[Unit]
+Description=Banking System FastAPI service
+After=network-online.target horizon-core.service
+Wants=network-online.target
+[Service]
+Type=simple
+User=horizon-api
+Group=horizon-api
+EnvironmentFile=/etc/horizon-bank/api.env
+WorkingDirectory=/opt/horizon-bank/backend
+ExecStart=/opt/horizon-bank/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --no-access-log
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+[Install]
+WantedBy=multi-user.target

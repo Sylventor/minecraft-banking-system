@@ -1,0 +1,54 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.py[cod]
+node_modules/
+dist/
+coverage/
+build/
+cmake-build-*/
+*.o
+*.a
+*.so
+*.dll
+*.exe
+.idea/
+.vscode/
+postgres-data/
+backups/
+generated/
+.venv/
+*.egg-info/
+.tools/
+test-results/
+atm/config.json
+atm/state/
+atm/*.env
+
+# Logs
+*.log
+logs/
+
+# Windows build files
+*.obj
+*.pdb
+*.lib
+
+# Local databases
+*.sqlite
+*.sqlite3
+
+# Additional CMake artifacts
+CMakeFiles/
+CMakeCache.txt
+.privacy-backups/
+.privacy-maintenance.lock
+
+# Local Fabric/Gradle cache
+.gradle/

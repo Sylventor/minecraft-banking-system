@@ -1,0 +1,7 @@
+{
+  "required": true,
+  "package": "bank.horizon.hpay.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": ["KeyboardMixin", "MouseMixin"],
+  "injectors": {"defaultRequire": 1}
+}

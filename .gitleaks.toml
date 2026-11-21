@@ -1,0 +1,21 @@
+title = "Minecraft Banking System synthetic fixture exceptions"
+
+[extend]
+useDefault = true
+
+# Match both an exact synthetic value and its fixture file; never exclude a whole test tree.
+[[allowlists]]
+description = "Non-production API peppers used only by CI and local unit fixtures"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^(?:\.github/workflows/ci\.yml|backend/tests/conftest\.py)$''']
+regexes = ['''^(?:ci\-api\-pepper\-with\-at\-least\-32\-chars|test\-api\-pepper\-with\-32\-characters)$''']
+
+[[allowlists]]
+description = "Deterministic numeric Discord identifier in a migration fixture"
+targetRules = ["discord-client-id"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''^tests/integration/test_upgrade_21\.py$''']
+regexes = ['''^123456789123456789$''']

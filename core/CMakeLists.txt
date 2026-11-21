@@ -1,0 +1,56 @@
+find_package(Protobuf CONFIG QUIET)
+if(NOT Protobuf_FOUND)
+  find_package(Protobuf REQUIRED)
+endif()
+find_package(gRPC CONFIG REQUIRED)
+find_package(libpqxx CONFIG QUIET)
+if(TARGET libpqxx::pqxx)
+  set(HORIZON_PQXX libpqxx::pqxx)
+elseif(TARGET pqxx)
+  set(HORIZON_PQXX pqxx)
+else()
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(PQXX REQUIRED IMPORTED_TARGET libpqxx)
+  set(HORIZON_PQXX PkgConfig::PQXX)
+endif()
+
+set(PROTO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/proto")
+set(PROTO_NAME horizon/banking/v1/banking)
+set(GENERATED "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${GENERATED}")
+add_custom_command(
+  OUTPUT "${GENERATED}/${PROTO_NAME}.pb.cc" "${GENERATED}/${PROTO_NAME}.pb.h"
+         "${GENERATED}/${PROTO_NAME}.grpc.pb.cc" "${GENERATED}/${PROTO_NAME}.grpc.pb.h"
+  COMMAND protobuf::protoc --proto_path=${PROTO_ROOT} --cpp_out=${GENERATED}
+          --grpc_out=${GENERATED} --plugin=protoc-gen-grpc=$<TARGET_FILE:gRPC::grpc_cpp_plugin>
+          "${PROTO_ROOT}/${PROTO_NAME}.proto"
+  DEPENDS "${PROTO_ROOT}/${PROTO_NAME}.proto" protobuf::protoc gRPC::grpc_cpp_plugin
+  VERBATIM)
+add_library(horizon_proto STATIC "${GENERATED}/${PROTO_NAME}.pb.cc" "${GENERATED}/${PROTO_NAME}.grpc.pb.cc")
+target_link_libraries(horizon_proto PUBLIC protobuf::libprotobuf gRPC::grpc++)
+target_include_directories(horizon_proto SYSTEM PUBLIC "${GENERATED}")
+
+function(horizon_warnings target)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W4 /WX /permissive- /utf-8)
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Werror)
+  endif()
+endfunction()
+add_library(horizon_domain src/money.cpp)
+target_include_directories(horizon_domain PUBLIC include)
+horizon_warnings(horizon_domain)
+add_library(horizon_repository src/postgres_ledger.cpp)
+target_link_libraries(horizon_repository PUBLIC horizon_domain ${HORIZON_PQXX})
+horizon_warnings(horizon_repository)
+add_executable(horizon-core src/main.cpp src/grpc_service.cpp src/account_directory.cpp src/administration.cpp src/atm.cpp src/privacy.cpp src/payment_requests.cpp src/hpay.cpp src/business.cpp src/analytics.cpp src/exchange.cpp src/exchange_engine.cpp src/exchange_read.cpp src/exchange_corporate.cpp)
+target_link_libraries(horizon-core PRIVATE horizon_repository horizon_proto)
+horizon_warnings(horizon-core)
+
+if(BUILD_TESTING)
+  find_package(GTest CONFIG REQUIRED)
+  add_executable(money_tests tests/money_tests.cpp)
+  target_link_libraries(money_tests PRIVATE horizon_domain GTest::gtest_main)
+  include(GoogleTest)
+  gtest_discover_tests(money_tests)
+endif()

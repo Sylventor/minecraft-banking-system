@@ -1,0 +1,19 @@
+name: Bug report
+description: Report a reproducible issue using synthetic local data.
+body:
+  - type: markdown
+    attributes:
+      value: Do not post security exploits, credentials, player records, or production logs. Use SECURITY.md for private reporting.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Local reproduction steps
+      description: Include version and platform; use fictional data only.
+    validations:
+      required: true

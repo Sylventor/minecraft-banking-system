@@ -1,0 +1,1 @@
+{"key.hpay.pay":"HPay — Оплатить товар","key.category.hpay.payments":"HPay","hpay.invalid_config":"HPay: проверьте config/hpay.json.","hpay.no_sign":"HPay: наведите прицел на табличку.","hpay.no_product":"HPay: на табличке нет ID товара.","hpay.ambiguous":"HPay: на табличке несколько разных ID товара."}

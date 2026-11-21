@@ -1,0 +1,6 @@
+[horizon-backup]
+host=127.0.0.1
+port=5432
+dbname=horizon
+user=horizon_backup
+# Put the password in a protected PGPASSFILE, not here or on a command line.

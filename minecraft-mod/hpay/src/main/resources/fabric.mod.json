@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "hpay",
+  "version": "1.0.1",
+  "name": "HPay",
+  "description": "Use Minecraft signs to send Banking System payment commands.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "bank.horizon.hpay.HPayClient"
+    ]
+  },
+  "mixins": [
+    "hpay.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "fabric-api": "*",
+    "minecraft": "1.21.11",
+    "java": ">=21"
+  },
+  "license": "Apache-2.0"
+}

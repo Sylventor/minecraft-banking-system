@@ -1,0 +1,40 @@
+{
+  "host": "minecraft.example.invalid",
+  "port": 25565,
+  "version": false,
+  "debug_messages": false,
+  "hpay_protection_seconds": 3,
+  "currency_item": "ancient_debris",
+  "max_operation_amount": 64,
+  "player_distance": 15,
+  "cooldown_ms": 5000,
+  "message_delay_ms": 500,
+  "reconnect_delay_ms": 5000,
+  "trusted_server_auth": false,
+  "chat": {
+    "incoming_pattern": "^✉ Сообщение от\\s+(?:[^➜\\r\\n]*?\\s)?(?<sender>[A-Za-z0-9_]{3,16})\\s*➜\\s*(?<message>[^\\r\\n]+)$",
+    "delivery_pattern": null,
+    "failure_pattern": "(?:Игрок.*не (?:найден|в сети)|Player.*(?:not found|offline)|не удалось отправить)",
+    "login_success_pattern": "(?:Вы успешно (?:авторизовались|вошли)|Successfully logged in)"
+  },
+  "bots": [
+    {
+      "id": "atm-1",
+      "username": "BankingATM",
+      "master": true,
+      "enabled": true,
+      "auth": "offline",
+      "login_password_env": "ATM_MASTER_LOGIN_PASSWORD",
+      "container": { "dimension": "overworld", "x": 0, "y": 64, "z": 0 }
+    },
+    {
+      "id": "atm-2",
+      "username": "BankingATM2",
+      "master": false,
+      "enabled": false,
+      "auth": "offline",
+      "login_password_env": "ATM_SECOND_LOGIN_PASSWORD",
+      "container": { "dimension": "overworld", "x": 10, "y": 64, "z": 0 }
+    }
+  ]
+}

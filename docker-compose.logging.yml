@@ -1,0 +1,15 @@
+# Opt in only after installing the host journal retention policy in docs/privacy-operations.md.
+x-log: &privacy-log
+  driver: journald
+  options: {tag: "horizon-bank/{{.Name}}"}
+services:
+  postgres: {logging: *privacy-log}
+  finance-migrations: {logging: *privacy-log}
+  auth-migrations: {logging: *privacy-log}
+  core: {logging: *privacy-log}
+  backend: {logging: *privacy-log}
+  payroll-worker: {logging: *privacy-log}
+  privacy-worker: {logging: *privacy-log}
+  web: {logging: *privacy-log}
+  bot: {logging: *privacy-log}
+  atm: {logging: *privacy-log}

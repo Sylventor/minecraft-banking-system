@@ -1,0 +1,6 @@
+[Unit]
+Description=Enforce the host journal thirty-day retention limit
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/journalctl --rotate --vacuum-time=30days

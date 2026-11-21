@@ -1,0 +1,19 @@
+[Unit]
+Description=Banking System private C++ financial core
+After=network-online.target postgresql.service
+Wants=network-online.target
+[Service]
+Type=simple
+User=horizon-core
+Group=horizon-core
+EnvironmentFile=/etc/horizon-bank/core.env
+ExecStart=/usr/local/bin/horizon-core
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/horizon-bank
+[Install]
+WantedBy=multi-user.target

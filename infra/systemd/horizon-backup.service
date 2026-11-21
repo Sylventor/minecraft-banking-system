@@ -1,0 +1,13 @@
+[Unit]
+Description=Banking System PostgreSQL backup with restore-list verification
+[Service]
+Type=oneshot
+User=horizon-backup
+Group=horizon-backup
+EnvironmentFile=/etc/horizon-bank/backup.env
+ExecStart=/opt/horizon-bank/infra/backup/backup-postgres.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/horizon-bank

@@ -1,0 +1,54 @@
+[project]
+name = "horizon-bank-api"
+version = "2.6.1"
+requires-python = ">=3.12"
+dependencies = [
+  "setuptools>=84.1.0",
+  "argon2-cffi==25.1.0",
+  "tzdata==2026.5",
+  "certifi==2026.10.19",
+  "alembic==1.16.5", "asyncpg==0.30.0", "fastapi==0.156.1", "starlette==1.9.0", "grpcio==1.74.0",
+  "grpcio-tools==1.74.0", "httpx==0.28.1", "itsdangerous==2.2.0", "pydantic-settings==2.10.1",
+  "sqlalchemy[asyncio]==2.0.43", "structlog==25.4.0", "uvicorn[standard]==0.35.0"
+  , "psycopg[binary]==3.2.9"
+]
+
+[build-system]
+requires = ["setuptools>=84.1.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["locales/*.json"]
+
+[project.optional-dependencies]
+dev = ["aiosqlite==0.21.0", "mypy==1.17.1", "pytest==9.0.3", "pytest-asyncio==1.4.0", "ruff==0.12.10", "grpc-stubs==1.53.0.6", "types-protobuf==7.35.1.20260906"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["app/grpc/generated"]
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "app.security.require_scope", "app.security.require_admin"]
+[tool.ruff.lint.isort]
+known-first-party = ["app", "bot", "horizon_sdk"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+mypy_path = "$MYPY_CONFIG_FILE_DIR/app/grpc/generated"
+plugins = ["pydantic.mypy"]
+
+# Protoc output is generated vendor code; type-check all handwritten adapters strictly.
+[[tool.mypy.overrides]]
+module = ["horizon.banking.v1.*"]
+follow_imports = "silent"
+follow_imports_for_stubs = true

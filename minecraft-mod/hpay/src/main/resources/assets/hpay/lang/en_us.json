@@ -1,0 +1,1 @@
+{"key.hpay.pay":"HPay — Pay for product","key.category.hpay.payments":"HPay","hpay.invalid_config":"HPay: check config/hpay.json.","hpay.no_sign":"HPay: aim at a sign.","hpay.no_product":"HPay: no product ID on this sign.","hpay.ambiguous":"HPay: this sign contains different product IDs."}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Banking System verified backup, restore check and privacy maintenance
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=banking
+WorkingDirectory=/opt/minecraft-banking-system
+EnvironmentFile=/etc/horizon-bank/privacy.env
+ExecStart=/bin/bash infra/privacy/maintenance.sh --apply
+UMask=0077
+NoNewPrivileges=true
